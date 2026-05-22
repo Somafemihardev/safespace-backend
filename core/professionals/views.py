@@ -1,5 +1,6 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth.models import User
@@ -12,9 +13,10 @@ class ProfessionalViewSet(viewsets.ModelViewSet):
     queryset = Professional.objects.all()
     serializer_class = ProfessionalSerializer
 
-# --- UPDATED: Now accepts both GET and PUT requests ---
+# --- SECURED ENDPOINT ---
 @api_view(['GET', 'PUT']) 
-@permission_classes([IsAuthenticated]) # The Bouncer!
+@authentication_classes([TokenAuthentication]) # The ID Scanner!
+@permission_classes([IsAuthenticated])         # The Bouncer!
 def get_my_profile(request):
     try:
         # We follow the chain from the User account to their linked Professional profile
@@ -38,7 +40,7 @@ def get_my_profile(request):
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+# --- PUBLIC ENDPOINT ---
 @api_view(['POST'])
 @permission_classes([AllowAny]) # Anyone can create a profile
 def register_professional(request):
@@ -72,8 +74,7 @@ def register_professional(request):
         return Response({'error': 'Something went wrong during registration.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
-    # Add this to the bottom of professionals/views.py
-
+# --- PUBLIC ENDPOINT ---
 @api_view(['GET'])
 @permission_classes([AllowAny]) # Anyone downloading the client app can browse
 def get_vetted_professionals(request):
@@ -87,13 +88,9 @@ def get_vetted_professionals(request):
         
     except Exception as e:
         return Response({'error': 'Could not fetch the directory.'}, status=500)
-    
 
 
-
-
-
-
+# --- PUBLIC ENDPOINT ---
 @api_view(['POST'])
 @permission_classes([AllowAny]) # Anyone on the client app can request a session
 def book_appointment(request):
@@ -132,9 +129,10 @@ def book_appointment(request):
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
 
-
+# --- SECURED ENDPOINT ---
 @api_view(['GET'])
-@permission_classes([IsAuthenticated]) # The Bouncer ensures they are logged in!
+@authentication_classes([TokenAuthentication]) # The ID Scanner
+@permission_classes([IsAuthenticated])         # The Bouncer
 def get_my_schedule(request):
     try:
         # Find the profile of the person making the request
@@ -151,10 +149,10 @@ def get_my_schedule(request):
         return Response({'error': 'Could not fetch schedule.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-
+# --- SECURED ENDPOINT ---
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication]) # The ID Scanner
+@permission_classes([IsAuthenticated])         # The Bouncer
 def update_appointment_status(request, pk):
     try:
         # Find the specific appointment. 
